@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gcc -g -Wno-format -lwiringPi -lpthread -o gpioTest gpioTest.c -Wno-deprecated-declarations -Wno-format-security -lm `pkg-config --cflags --libs gtk+-3.0` -export-dynamic
