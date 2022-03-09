@@ -25,6 +25,8 @@
 #+
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+//#include "gpioTest.h"
+#include "UART_test.h"
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -53,6 +55,8 @@
 #elif defined(GDK_WINDOWING_QUARTZ)
 #include <gdk/gdkquartz.h>
 #endif
+
+//#include "gpioTest.h"
 
 #define LEFT_BUTTON 22
 #define MIDDLE_BUTTON 27
@@ -122,6 +126,14 @@ int ppm = 0;
 int cam = 0;
 long int timedate;
 int counter = 10;
+float dist = 0;
+
+typedef struct measData_t{
+	int ppm;
+	float dist;
+}measData;
+
+measData mData;
 
 GMutex mutex_1, mutex_2, mutex_3;
 
@@ -347,7 +359,7 @@ void left_button_pressed()
 			OpMode = Shutdown;
 		}
 	}
-	else if (strcmp(labelstring, "PPM") == 0)
+	else if (strcmp(labelstring, "PPM/DIST") == 0)
 	{
 		gtk_widget_show(ppm_display_label);
 		gtk_widget_show(eventbox_ppm);
@@ -378,7 +390,7 @@ void middle_button_pressed()
 			delay(1000);
 		}
 		gtk_label_set_text(GTK_LABEL(status_label), (const gchar *)"Choose Mode");
-		gtk_label_set_text(GTK_LABEL(left_label), (const gchar *)"PPM");
+		gtk_label_set_text(GTK_LABEL(left_label), (const gchar *)"PPM/DIST");
 		gtk_label_set_text(GTK_LABEL(middle_label), (const gchar *)"Live Cam");
 		gtk_label_set_text(GTK_LABEL(right_label), (const gchar *)"Bar Graph");
 	}
@@ -485,7 +497,9 @@ gboolean update_ppm(gpointer ppm)
 	// update the GUI here:
 	// gtk_button_set_label(button,"label");
 	itoa((int)ppm, buffer, 10);
+	//itoa((float)ppm, buffer, 10);
 	strcat(buffer, " PPM");
+	strcat(buffer, "\n\r 8.0 M");
 	gtk_label_set_text(GTK_LABEL(ppm_display_label), buffer);
 
 	// And read the GUI also here, before the mutex to be unlocked:
@@ -494,6 +508,32 @@ gboolean update_ppm(gpointer ppm)
 
 	return FALSE;
 }
+
+gboolean update_meas(gpointer mData)
+{
+	char buffer[20], buffer1[10];
+	measData lmData = *(measData*)mData;
+
+	g_mutex_lock(&mutex_1);
+	// update the GUI here:
+	// gtk_button_set_label(button,"label");
+	//itoa((int)ppm, buffer, 10);
+	//itoa(lmData.ppm, buffer, 10);
+	//sprintf(buffer, "%d", lmData.ppm);
+	sprintf(buffer, "%d", lmData.ppm);
+	strcat(buffer, " PPM\n\r");
+	sprintf(buffer1, "%2.2f", lmData.dist);
+	strcat(buffer1, " M");
+	strcat(buffer, buffer1);
+	gtk_label_set_text(GTK_LABEL(ppm_display_label), buffer);
+
+	// And read the GUI also here, before the mutex to be unlocked:
+	// gchar * text = gtk_entry_get_text(GTK_ENTRY(entry));
+	g_mutex_unlock(&mutex_1);
+
+	return FALSE;
+}
+
 
 gboolean update_time(gpointer time_info)
 {
@@ -615,9 +655,11 @@ void *start_loop_thread(void *arg)
 			break;
 
 		case PPM:
-			ppm += 1;
+			mData.ppm += 1;
+			mData.dist = UART_main();
 			delay(1000);
-			gdk_threads_add_idle(update_ppm, (int *)ppm);
+			//gdk_threads_add_idle(update_ppm, (measData *)ppm);
+			gdk_threads_add_idle(update_meas, (gpointer)&mData);
 			break;
 		case LiveCam:
 			delay(1);

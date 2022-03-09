@@ -8,7 +8,7 @@
 			"args": [
 				"-g",
 				"-Wno-format",
-				"${file}",
+				"${workspaceFolder}/*.c",
 				"-o",
 				"${fileDirname}/${fileBasenameNoExtension}",
 				"-lwiringPi",

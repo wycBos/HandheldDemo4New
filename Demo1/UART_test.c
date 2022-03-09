@@ -32,8 +32,8 @@ void serialread(int fd, int numbytes)
             }
 }
 
-int main()
-//float UART_main()
+//int main()
+float UART_main()
 {
     int fd;
     int c;
@@ -52,19 +52,15 @@ int main()
 //    if((fd = serialOpen("/dev/ttyAMA0",115200)) < 0)return 1;
 //    serialFlush(fd);
     printf("serial test start ...\n");
-    
-    
-    
-    
-    
+
     serialPrintf(fd,contimeas);
     
   
-    int counter = 0;
+    int counter = 0, counterErr = 0; GoGo = TRUE;
     while(GoGo)
     {  
         
-        if (counter > 5) GoGo = FALSE;
+        if (counter > 2 || counterErr > 50) GoGo = FALSE;
         if (serialDataAvail(fd) > 0)
         {
             delay(50);
@@ -101,14 +97,16 @@ int main()
             {
                 printf("Invalid Data!\n");
             }
+        }else{
+            counterErr++;
         }
         delay(20);
     }
-//    serialPrintf(fd,laseroff);
-//    delay(100);
-//   serialPrintf(fd,shutdown);     
-//    delay(500);
-//    serialClose(fd);
+    //serialPrintf(fd,laseroff);
+    //delay(500);
+    //serialPrintf(fd,shutdown);     
+    //delay(500);
+    serialClose(fd);
     printf("Received q for Quit \n"); 
     return distance; //0;
 }
