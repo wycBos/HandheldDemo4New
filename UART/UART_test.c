@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
 #include <wiringPi.h>
 #include <wiringSerial.h>
 #include <stdbool.h>
@@ -58,8 +61,6 @@ struct laserCmdRes
     char  temperature;
     float distance;
 };
-
-struct laserCmdRes cmdResult;
 
 #if 1 //new code
 /*****************//**
@@ -234,15 +235,15 @@ bool LaserCmdFunction(int fd, char *cmdBuffer, int RevNumber, struct laserCmdRes
 	int counter = 0;
 	int numByt = 0;
 	int bytes;
-    char RxBuffer[10];
+    char RxBuffer[16];
 
     bytes = cmdResult->cmdLen;
     prepLaserCmd(cmdBuffer, 0x80, bytes);
     
     /* check the command */
-    for(int i = 0; i < bytes; i++)
-        printf("%x ", cmdBuffer[i]);
-    printf(" Tx\n");
+    //for(int i = 0; i < bytes; i++)
+    //    printf("%x ", cmdBuffer[i]);
+    //printf(" Tx\n");
 
     /* flush the receiver buffer */
 	numByt = serialDataAvail(fd);
@@ -250,19 +251,31 @@ bool LaserCmdFunction(int fd, char *cmdBuffer, int RevNumber, struct laserCmdRes
 	{
 		serialFlush(fd);
 		delay(50);
-		numByt = serialDataAvail(fd); // flush the buffer, then numByt should be zero.
+ 		numByt = serialDataAvail(fd); // flush the buffer, then numByt should be zero.
+        /* check the Rxbuffer */
+#if 0
+        if(numByt > 12)
+        {
+            numByt = 11;
+        }
+        okFlag = readLaserData(fd, RxBuffer, numByt);
+ 		numByt = serialDataAvail(fd); // flush the buffer, then numByt should be zero.
 		delay(50);
 		counter ++;
+        if(counter > 3)
+            serialFlush(fd);
+#endif
+        /*end of the check*/
 	}
 	if(numByt != 0)
 	{
-		printf("flush failure!\n");
+		//printf("flush failure!\n");
         return false; //flush receiver buffer failure
 	}
 	
 	/* send Laser command */
 	serialPrintf(fd, cmdBuffer);
-	delay(100);
+	delay(600);//200
 	
 	/* check command result */
     //okFlag = LaserReCode(fd, RxBuffer, RevNumber); //get the command result from laser module
@@ -277,11 +290,12 @@ bool LaserCmdFunction(int fd, char *cmdBuffer, int RevNumber, struct laserCmdRes
             {
                serialFlush(fd);
                numByt = serialDataAvail(fd);
+               //break;
             }           
 		}
 		else{ // the number of received is not enough, waiting for a while. 
 			counter++;
-			delay(50);
+			delay(100);
             numByt = serialDataAvail(fd);
 		}
 	}while(!okFlag && (counter < maxTry));
@@ -289,150 +303,273 @@ bool LaserCmdFunction(int fd, char *cmdBuffer, int RevNumber, struct laserCmdRes
     /* process receive data */
     if(okFlag)
     {
+        //printf("Cmd Rx OK\n");
         okFlag = LaserCmdProc(RxBuffer, cmdResult);
     }
 	return okFlag; //out of the trying
 }
 
-
-int main()
+/*****************//**
+*  \brief Laser module APIs.
+*  laser turn on - laserOn()
+*  laser turn off - laserOff()
+*  continuous measurement - measureCon()
+*  single measurement - measureSig()
+*/
+bool laserOn(int fd)
 {
-    int fd;
-    int c;
-    int numbytes;
-    bool optFlag;
-    unsigned char data[11] = {0};
-    float distance = 0;
-    char addr = 0x80; //default 0x80
-
-    if(wiringPiSetup() < 0)return 1;
-    if((fd = serialOpen("/dev/serial0",9600)) < 0)return 1;
-    printf("serial test start ...\n");
-
-    serialPrintf(fd,control_laserShutdown);     
-    delay(100);
-
-    /* start laser */
-    cmdResult.cmdID = LASER_CTRLON_CMD;
-    cmdResult.cmdLen = (int)sizeof(control_laserOn);
-    optFlag = LaserCmdFunction(fd, control_laserOn, 5, &cmdResult);
-
-    if(!optFlag)
-    {
-        printf("turn laser on is failure!\n");
-    }
-    delay(100);
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
 
     /* set continuous measurement */
-    cmdResult.cmdID = LASER_MEACON_CMD;
-    cmdResult.cmdLen = (int)sizeof(measure_laserContinu);
- //   optFlag = LaserCmdFunction(fd, measure_laserContinu, 11, &cmdResult);
+    measRlt.cmdID = LASER_CTRLON_CMD;
+    measRlt.cmdLen = (int)sizeof(control_laserOn);
+    okFlag = LaserCmdFunction(fd, control_laserOn, 5, &measRlt);
 
-    if(!optFlag)
+    if(!okFlag)
     {
-        printf("set continue measuring is failure!\n");
+        //printf("turning laser on is failure!\n");
+    }else{
+        //printf("Distance = %5.1f\n", measRlt.distance);
+        delay(50);
     }
-    else{
-        distance = cmdResult.distance;
+    return okFlag;
+}
+
+bool laserOff(int fd)
+{
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
+
+    /* set continuous measurement */
+    measRlt.cmdID = LASER_CTLOFF_CMD;
+    measRlt.cmdLen = (int)sizeof(control_laserOff);
+    okFlag = LaserCmdFunction(fd, control_laserOff, 5, &measRlt);
+
+    if(!okFlag)
+    {
+        //printf("turning laser off is failure!\n");
+    }else{
+        //printf("Distance = %5.1f\n", measRlt.distance);
+        delay(50);
+    }
+    return okFlag;
+}
+
+bool laserShutDown(int fd)
+{
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
+
+    /* set continuous measurement */
+    measRlt.cmdID = LASER_CTLSHT_CMD;
+    measRlt.cmdLen = (int)sizeof(control_laserShutdown);
+    okFlag = LaserCmdFunction(fd, control_laserShutdown, 4, &measRlt);
+
+    if(!okFlag)
+    {
+        //printf("shutdown is failure!\n");
+    }else{
+        //printf("Distance = %5.1f\n", measRlt.distance);
+        delay(50);
     }
 
-    int counter = 0;
-    while(!GoGo)
-    {  
-        
-        if (counter > 50) GoGo = FALSE;
-        if (serialDataAvail(fd) > 0)
+    return okFlag;
+}
+
+float measurSig(int fd)
+{
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
+
+    /* set single measurement */
+    measRlt.cmdID = LASER_MEASIG_CMD;
+    measRlt.cmdLen = (int)sizeof(measure_laserSingle);
+    okFlag = LaserCmdFunction(fd, measure_laserSingle, 11, &measRlt);
+
+    if(!okFlag)
+    {
+        printf("setting to single measurement is failure!\n");
+        measRlt.distance = 0;
+    }else{
+        printf("Distance = %5.1f\n", measRlt.distance);
+        delay(500);
+    }
+    serialFlush(fd);
+    return measRlt.distance;
+}
+
+bool measurCon(int fd)
+{
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
+
+    /* set continuous measurement */
+    measRlt.cmdID = LASER_MEACON_CMD;
+    measRlt.cmdLen = (int)sizeof(measure_laserContinu);
+    okFlag = LaserCmdFunction(fd, measure_laserContinu, 11, &measRlt);
+
+    if(!okFlag)
+    {
+        printf("setting to continuous measurement is failure!\n");
+
+    }else{
+        printf("Distance = %5.1f\n", measRlt.distance);
+        delay(500);
+    }
+    return okFlag;
+}
+
+float getConDist(int fd)
+{
+    const int RxNum = 11;
+    struct laserCmdRes measRlt;
+    bool okFlag = false;
+    char RxBuffer[16];
+    int counter = 5, bytes = 0;
+    float dist;
+
+    /* get continuous measurement value */
+    while(counter > 0)
+    {
+        if ((bytes = serialDataAvail(fd)) > 11)
         {
-            delay(50);
-            counter++;
-            for(int i=0;i<11;i++)
-            {
-                data[i]=serialGetchar(fd);
-                printf("%x ",data[i]);
-            }
-            printf("\n");
-            unsigned char Check=0;
-            for(int i=0;i<10;i++)
-            {
-                Check=Check+data[i]; //check sum calculate
-            }
-            Check=~Check+1;
-            printf("%x \n" ,Check);
-            if(data[10]==Check)
-            {
-                if(data[3]=='E'&&data[4]=='R'&&data[5]=='R')
+            okFlag = readLaserData(fd, RxBuffer, (int)RxNum);
+            
+            if(okFlag){
+                if(RxBuffer[3] == 'E' && RxBuffer[4] == 'R' && RxBuffer[5] == 'R')
                 {
-                    printf("Out of range");
+                    printf("Value Err\n");
+                    dist = 0;
                 }
                 else
                 {
-                distance=0;
-                distance=(data[3]-0x30)*100+(data[4]-0x30)*10+(data[5]-0x30)*1+(data[7]-0x30)*0.1+(data[8]-0x30)*0.01+(data[9]-0x30)*0.001;
-                printf("Distance = ");
-                printf("%5.1f",distance);
-                printf(" m\n");
+                dist = 0;
+                dist = (RxBuffer[3] - 0x30)*100 + (RxBuffer[4] - 0x30)*10 + (RxBuffer[5] - 0x30)*1
+                    + (RxBuffer[7] - 0x30)*0.1 + (RxBuffer[8] - 0x30)*0.01 + (RxBuffer[9]-0x30)*0.001;
+                printf("Distance = %5.1f m\n", dist);
                 }
+                break;
             }
             else
             {
-                optFlag = false;//abotionLaser(fd, 10, 1); //printf("Invalid Data!\n");
-                if(optFlag)
-                {
-                    ;//serialPrintf(fd, contimeas);
-                }
+                counter--;
+                delay(400);
             }
         }
         else{
             //serialPrintf(fd,contimeas);
-            counter++;
+            counter--;
             delay(200);
         }
-        delay(100);
     }
 
-    for(int i = 0; i < 10; i++)
+    if(!okFlag)
     {
-        /* switch to single measurement */
-        cmdResult.cmdID = LASER_MEASIG_CMD;
-        optFlag = LaserCmdFunction(fd, measure_laserSingle, 11, &cmdResult);
+        dist = 0;
+        printf("getting distance value is failure!\n");
+    }else{
+        //printf("Distance = %5.1f\n", dist);
+        delay(500);
+    }
+    serialFlush(fd);
+    return dist;
+}
 
-        if(!optFlag)
+
+/* application routine */
+int main(int argc, char *argv[])
+{
+    struct laserCmdRes cmdResult;
+    int fd;
+    int c;
+    int operat = 0;
+    int numbytes;
+    bool optFlag;
+    char data[11] = {0};
+    float distance = 0;
+    char addr = 0x80; //default 0x80
+    int maxCont =20;
+
+
+    if(argc == 2)
+    {
+        printf("Select Laser option is %s\n", argv[1]);
+        if(!strcmp("single", argv[1]))
         {
-            printf("set to single measurement is failure!\n");
+            //printf("single\n");
+            operat = 1;
+        }else if(!strcmp("cont", argv[1])){
+            //printf("continuous\n");
+            operat = 0;
         }else{
-            printf("Distance = %5.1f\n", cmdResult.distance);
-            delay(500);
+            printf("wrong parameters, default (single).\n");
+            operat = 1; //default single measuring
         }
-
-    }
-
-    /* turn laser off */
-    cmdResult.cmdID = LASER_CTLOFF_CMD;
-    optFlag = LaserCmdFunction(fd, control_laserOff, 5, &cmdResult);
-
-    if(!optFlag)
+    }else
     {
-        printf("turn laser off is failure!\n");
+        printf("No parameters, default (single).\n");
+        operat = 1; //default single measuring
+    }
+    
+    if(wiringPiSetup() < 0)return 1;
+    if((fd = serialOpen("/dev/serial0",9600)) < 0)return 1;
+    //printf("serial test start ...\n");
+
+    /* check receiver buffer */
+    numbytes = serialDataAvail(fd);
+    if(numbytes > 0)
+    {
+        readLaserData(fd, data, numbytes); //check buffer data
+        serialFlush(fd);
     }
 
-    //serialPrintf(fd,laseroff);
-    //delay(100);
-   
-    /* shut down laser */
-    //cmdResult.cmdID = LASER_CTLSHT_CMD;
-    //optFlag = LaserCmdFunction(fd, control_laserShutdown, 0, &cmdResult);
+    /* start laser */
+    optFlag = laserOn(fd);
 
-    serialPrintf(fd,control_laserShutdown);     
-    delay(100);
+    /* set measurement */
+    if(operat == 1) //go to single measurement
+    {
+        distance = measurSig(fd);
+        GoGo = false;
+    }
+    else if(operat == 0) //set continuouse measurement
+    {
+        optFlag = measurCon(fd);
+    }
+
+
+    /* continuous measurement */
+    int counter = 0;
+    while(GoGo)
+    {  
+        
+        if (counter > maxCont) GoGo = FALSE;
+        distance = getConDist(fd);
+        counter++;
+        delay(200);
+    }
+    /* turn laser off */
+    if(operat == 0)
+        distance = measurSig(fd);
+    optFlag = laserOff(fd);
+    optFlag = laserShutDown(fd);    
+
     /* check laser buffer */
+    serialFlush(fd);
     numbytes = serialDataAvail(fd);
     if(numbytes)
     {
+        readLaserData(fd, data, numbytes);
         serialFlush(fd);
+        /* shut down again */
+//      serialPrintf(fd,control_laserShutdown);     
+//      delay(100);
     }
+
     serialClose(fd);
-    printf("Received q for Quit \n"); 
-    //return distance; 
+    printf("UART Closed\n"); 
+
     return 0;
 }
 #endif

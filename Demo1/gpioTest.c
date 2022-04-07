@@ -27,6 +27,7 @@
 
 //#include "gpioTest.h"
 #include "UART_test.h"
+#include "waveForm.h"
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -41,6 +42,7 @@
 #include <sys/mman.h>
 #include <stdio.h>
 #include <wiringPi.h>
+#include <pigpio.h>
 #include <pthread.h>
 #include <signal.h>
 //#include <raspicam/raspicam.h>
@@ -131,6 +133,7 @@ float dist = 0;
 typedef struct measData_t{
 	int ppm;
 	float dist;
+	int wid;
 }measData;
 
 measData mData;
@@ -367,6 +370,7 @@ void left_button_pressed()
 		gtk_label_set_text(GTK_LABEL(middle_label), (const gchar *)"");
 		gtk_label_set_text(GTK_LABEL(right_label), (const gchar *)"Quit");
 		gtk_label_set_text(GTK_LABEL(status_label), (const gchar *)"Survey PPM");
+		mData.wid = wavePiset();
 		OpMode = PPM;
 	}
 	else if (strcmp(labelstring, "IR Cam") == 0)
@@ -483,6 +487,7 @@ void right_button_pressed()
 		gtk_label_set_text(GTK_LABEL(right_label), (const gchar *)"Exit");
 		gtk_label_set_text(GTK_LABEL(status_label), (const gchar *)"Idle");
 		OpMode = Idle;
+		wavePistop(mData.wid);
 	}
 	else if (strcmp(labelstring, "Save") == 0)
 	{
