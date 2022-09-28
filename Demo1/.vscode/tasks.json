@@ -1,43 +1,43 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "cppbuild",
-			"label": "C/C++: gcc build active file",
-			"command": "/usr/bin/gcc",
-			"args": [
-				"-g",
-				"-Wno-format",
-				"${workspaceFolder}/*.c",
-				"-o",
-				"${fileDirname}/${fileBasenameNoExtension}",
-				"-lwiringPi",
-				"-lpigpio",
-				"-lpthread",
-				"-I/usr/include/python3.9",
-				"-lpython3.9",
-				"-Wno-deprecated-declarations ",
-				"-Wno-format-security",
-				"-lm",
-				"`pkg-config",
-				"--libs",
-				"--cflags",
-				"gstreamer-video-1.0",
-				"gtk+-3.0",
-				"gstreamer-1.0`",
-				"-export-dynamic"
-			],
-			"options": {
-				"cwd": "${fileDirname}"
-			},
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
-			"detail": "compiler: /usr/bin/gcc"
-		}
-	]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: gcc build active file",
+            "command": "/usr/bin/gcc",
+            "args": [
+                "-g",
+                "-Wno-format",
+                "${workspaceFolder}/*.c",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}",
+                "-lwiringPi",
+                "-lpigpio",
+                "-lpthread",
+                "-I/usr/include/python3.9",
+                "-lpython3.9",
+                "-Wno-deprecated-declarations ",
+                "-Wno-format-security",
+                "-lm",
+                "`pkg-config",
+                "--libs",
+                "--cflags",
+                "gstreamer-video-1.0",
+                "gtk+-3.0",
+                "gstreamer-1.0`",
+                "-export-dynamic"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "compiler: /usr/bin/gcc"
+        }
+    ]
 }

@@ -28,6 +28,7 @@
 //#include "gpioTest.h"
 #include "UART_test.h"
 #include "waveForm.h"
+#include "ADS1x15.h"
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -41,6 +42,7 @@
 #include <ctype.h>
 #include <sys/mman.h>
 #include <stdio.h>
+#include <linux/limits.h>
 #include <wiringPi.h>
 #include <pigpio.h>
 #include <pthread.h>
@@ -127,16 +129,17 @@ int current_min = -1;
 int ppm = 0;
 int cam = 0;
 long int timedate;
-int counter = 10;
+int counter = 0;
 float dist = 0;
 
 typedef struct measData_t{
-	int ppm;
+	int ppm;  //count
+	float ADVoltag;
 	float dist;
 	int wid;
 }measData;
 
-measData mData;
+measData mData; ads1x15_p adcMain;
 
 GMutex mutex_1, mutex_2, mutex_3;
 
@@ -188,7 +191,7 @@ void cleanup(int signo)
 	pullUpDnControl(LEFT_BUTTON, PUD_DOWN);
 	pullUpDnControl(MIDDLE_BUTTON, PUD_DOWN);
 	pullUpDnControl(RIGHT_BUTTON, PUD_DOWN);
-
+ 
 	exit(0);
 }
 
@@ -524,11 +527,12 @@ gboolean update_meas(gpointer mData)
 	// gtk_button_set_label(button,"label");
 	//itoa((int)ppm, buffer, 10);
 	//itoa(lmData.ppm, buffer, 10);
-	//sprintf(buffer, "%d", lmData.ppm);
 	sprintf(buffer, "%d", lmData.ppm);
 	strcat(buffer, " PPM\n\r");
 	sprintf(buffer1, "%2.2f", lmData.dist);
 	strcat(buffer1, " M");
+	sprintf(buffer, "%2.2f", lmData.ADVoltag);
+	strcat(buffer, " V\n\r");
 	strcat(buffer, buffer1);
 	gtk_label_set_text(GTK_LABEL(ppm_display_label), buffer);
 
@@ -547,6 +551,8 @@ gboolean update_time(gpointer time_info)
 	g_mutex_lock(&mutex_2);
 	// update the GUI here:
 	// gtk_button_set_label(button,"label");
+
+	//char *cp = calloc(1, sizeof(dateString));//test
 
 	strftime(dateString, sizeof(dateString), "%D", time_info);
 	gtk_label_set_text(GTK_LABEL(date_label), dateString);
@@ -662,6 +668,7 @@ void *start_loop_thread(void *arg)
 		case PPM:
 			mData.ppm += 1;
 			mData.dist = UART_main();
+			mData.ADVoltag = ADS1115_main();
 			delay(1000);
 			//gdk_threads_add_idle(update_ppm, (measData *)ppm);
 			gdk_threads_add_idle(update_meas, (gpointer)&mData);
@@ -673,6 +680,11 @@ void *start_loop_thread(void *arg)
 		case IRCam:
 			delay(100);
 			strcpy(img_filename, "./Images/Img_");
+			{
+				//char imgPath[64];
+				//realpath(img_filename, imgPath);
+				//printf("%s\n", imgPath);
+			}
 			if (counter < 10)
 			{
 				itoa((int)counter, buffer, 10);
@@ -711,8 +723,8 @@ void *start_loop_thread(void *arg)
 			{
 				int cresult;
 				counter = 0;
-				cresult = call_Python_Stitch(6, "Image_Stitching", "main", "Images", "output.jpeg","--images","--output");
-
+				//cresult = call_Python_Stitch(6, "Image_Stitching", "main", "Images", "output.jpeg","--images","--output");
+				printf("The stitching is removed for test!\n");
 				OpMode = Idle;
 			}
 
@@ -857,7 +869,15 @@ int main(int argc, char *argv[])
 	gtk_widget_show(laser_off);
 
 	OpMode = Splash;
-
+	/* set the window position */
+	gint x, y;
+	x = 0; y = 1130;
+	gtk_window_set_position(GTK_WINDOW(window), GDK_GRAVITY_NORTH_WEST);
+	gtk_window_move(GTK_WINDOW(window), x, y);
+	//gtk_window_get_position(GTK_WINDOW(window), &x, &y);
+	//gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER_ALWAYS);
+	
+	/* end the position set */
 	gtk_widget_show(window);
 
 	video_window_xwindow = gtk_widget_get_window(video_screen);
