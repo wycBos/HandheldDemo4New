@@ -23,15 +23,15 @@
   <object class="GtkTextBuffer" id="User"/>
   <object class="GtkWindow" id="window">
     <property name="width-request">480</property>
-    <property name="height-request">600</property>
+    <property name="height-request">640</property>
     <property name="can-focus">False</property>
     <property name="default-width">480</property>
-    <property name="default-height">640</property>
+    <property name="default-height">680</property>
     <property name="decorated">False</property>
     <child>
       <object class="GtkFixed" id="fixed1">
         <property name="width-request">480</property>
-        <property name="height-request">600</property>
+        <property name="height-request">640</property>
         <property name="visible">True</property>
         <property name="can-focus">False</property>
         <child>
@@ -564,5 +564,10 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkSizeGroup">
+    <widgets>
+      <widget name="ppm_display_label"/>
+    </widgets>
   </object>
 </interface>

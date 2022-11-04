@@ -10,9 +10,8 @@
 #include "waveForm.h"
 #include "ADS1x15.h"
 
-//ads1x15_p adcMain;
-
 #if 1
+static const unsigned int CFG_SAMRATE = 2;
 int gpios[]={5,6,13,12,};
 gpioPulse_t pulses[]=
 {
@@ -26,7 +25,7 @@ gpioPulse_t pulses[]=
    {0x2000, 0x1060, 125}, 
    {0x0000, 0x3060, 125},
    */
-   {0x1060, 0x0000, 5}, //1
+   {0x1060, 0x2000, 5}, //1
    {0x0000, 0x0020, 5}, 
    {0x0020, 0x0000, 5}, 
    {0x0000, 0x0020, 5}, 
@@ -136,7 +135,7 @@ gpioPulse_t pulses[]=
    {0x0020, 0x0000, 5}, 
    {0x0000, 0x0020, 5},  
 
-   {0x1020, 0x0040, 5}, //11
+   {0x3020, 0x0040, 5}, //11
    {0x0000, 0x0020, 5}, 
    {0x0020, 0x0000, 5}, 
    {0x0000, 0x0020, 5}, 
@@ -346,7 +345,6 @@ int wavePiset(void)
 
       printf("%.2f\n", ADvolt /*ADS1X15_read_voltage(adc)*/);
    }
-
 #endif
 
 #if 1
@@ -368,7 +366,20 @@ int wavePiset(void)
 */
    if (wid >= 0)
    {
-      gpioWaveTxSend(wid, PI_WAVE_MODE_REPEAT);
+      gpioWaveTxSend(wid, PI_WAVE_MODE_REPEAT_SYNC /*PI_WAVE_MODE_REPEAT*/);
+      //time_sleep(100);
+/*      
+   for(int n = 0; n < 14; n++)
+   {
+      serialPrintf(fd,contimeas);
+      serialPrintf(fd,contimeas);
+      serialPrintf(fd,contimeas);
+      serialPrintf(fd,contimeas);
+      time_sleep(2);
+   }
+*/
+//      gpioWaveTxStop();
+//      gpioWaveDelete(wid);
    }
 /*
    for(int n = 0; n < 4; n++)

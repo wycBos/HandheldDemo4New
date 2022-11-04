@@ -14,5 +14,6 @@
         "typeinfo": "c",
         "pigpio.h": "c",
         "time.h": "c"
+        //"pycapsule.h": "c"
     }
 }

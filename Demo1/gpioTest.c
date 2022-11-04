@@ -490,7 +490,11 @@ void right_button_pressed()
 		gtk_label_set_text(GTK_LABEL(right_label), (const gchar *)"Exit");
 		gtk_label_set_text(GTK_LABEL(status_label), (const gchar *)"Idle");
 		OpMode = Idle;
-		wavePistop(mData.wid);
+		if(mData.wid >= 0)
+		{
+			wavePistop(mData.wid);
+			mData.wid = -1;
+		}
 	}
 	else if (strcmp(labelstring, "Save") == 0)
 	{

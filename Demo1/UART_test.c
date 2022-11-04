@@ -51,7 +51,7 @@ float UART_main()
     if((fd = serialOpen("/dev/serial0",9600)) < 0)return 1;
 //    if((fd = serialOpen("/dev/ttyAMA0",115200)) < 0)return 1;
 //    serialFlush(fd);
-    printf("serial test start ...\n");
+    //printf("serial test start ...\n");
 
     serialPrintf(fd,contimeas);
     
@@ -107,7 +107,7 @@ float UART_main()
     //serialPrintf(fd,shutdown);     
     //delay(500);
     serialClose(fd);
-    printf("Received q for Quit \n"); 
+    //printf("Received q for Quit \n"); 
     return distance; //0;
 }
 
